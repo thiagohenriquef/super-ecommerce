@@ -65,3 +65,22 @@ services:
       - 19000:9000
     environment:
       KAFKA_BROKERCONNECT: kafka1:19092,kafka2:29092,kafka3:39092
+
+  # This "container" is a workaround to pre-create topics
+  kafka-setup:
+    image: confluentinc/cp-kafka:latest
+    hostname: kafka-setup
+    container_name: kafka-setup
+    depends_on:
+      - kafka1
+    volumes:
+      - $PWD/connectors:/tmp/connectors
+      - $PWD/dashboard:/tmp/dashboard
+    command: "bash -c 'echo Waiting for Kafka to be ready... && \
+                       cub kafka-ready -b kafka1:19092 1 20 && \
+                       kafka-topics --create --if-not-exists --zookeeper zookeeper:2181 --partitions 3 --replication-factor 3 --topic orders-topic '"
+    environment:
+      # The following settings are listed here only to satisfy the image's requirements.
+      # We override the image's `command` anyways, hence this container will not start a broker.
+      KAFKA_BROKER_ID: ignored
+      KAFKA_ZOOKEEPER_CONNECT: ignored
